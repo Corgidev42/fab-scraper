@@ -147,3 +147,45 @@ def export_images_to_pdf(folder):
 	print(f"✅ PDF final prêt : {pdf_path}")
 
 export_images_to_pdf(folder_name)
+
+# === Demande de suppression des fichiers générés ===
+def cleanup_prompt(folder):
+	print("\n🧼 Cleanup options:")
+	print("a → Supprimer TOUT (images .tif + scrap .webp/.jpg/.png)")
+	print("o → Supprimer uniquement les images .tif")
+	print("n → Ne rien supprimer")
+
+	answer = input("❓ Que souhaitez-vous supprimer ? [a/o/n] ").strip().lower()
+
+	deleted_tif = 0
+	deleted_scrap = 0
+
+	if answer == 'a' or answer == 'o':
+		for filename in os.listdir(folder):
+			if filename.endswith("_print_ready.tif"):
+				try:
+					os.remove(os.path.join(folder, filename))
+					deleted_tif += 1
+				except Exception as e:
+					print(f"❌ Erreur suppression TIFF {filename} : {e}")
+
+	if answer == 'a':
+		for filename in os.listdir(folder):
+			if filename.lower().endswith((".webp", ".jpg", ".jpeg", ".png")):
+				if not filename.endswith("_print_ready.tif"):
+					try:
+						os.remove(os.path.join(folder, filename))
+						deleted_scrap += 1
+					except Exception as e:
+						print(f"❌ Erreur suppression {filename} : {e}")
+
+	# Résumé
+	if answer == 'a':
+		print(f"🗑️ {deleted_tif} TIFF + {deleted_scrap} image(s) originale(s) supprimée(s).")
+	elif answer == 'o':
+		print(f"🗑️ {deleted_tif} TIFF supprimé(s).")
+	else:
+		print("✅ Aucun fichier supprimé.")
+
+# Appel de la fonction à la fin du script
+cleanup_prompt(folder_name)

@@ -16,6 +16,9 @@ All images are stored in a folder named after the **first card detected** on the
 -   ⚙️ **JavaScript rendering** handled via Chrome and Selenium
 -   📸 **Targeted image scraping** (via CSS class `.css-1ur2xev`)
 -   🔁 **Duplicate-friendly** (auto-renamed with suffixes)
+-   🖨️ **Print-ready export** (300 DPI, 69×94 mm with 3mm bleed, CMYK `.tif`)
+-   📄 **Deck PDF creation** (one page per card)
+-   🧼 **Interactive cleanup prompt** after generation
 -   📁 **Clean directory structure** based on the first card’s name
 -   🐍 **Automatic dependency installation** (if not already installed)
 -   🔧 **Makefile support** for easy automation (venv, install, run)
@@ -36,7 +39,7 @@ All images are stored in a folder named after the **first card detected** on the
 python main.py "https://fabrary.net/decks/..."
 ```
 
-> The script will automatically create a folder using the name of the first card found, and store all downloaded images there.
+> The script will automatically create a folder using the name of the first card found, download all images, generate print-ready `.tif` files, and compile a PDF.
 
 ---
 
@@ -47,9 +50,44 @@ If the first card found is `Death Touch`, you’ll get:
 ```
 ./Death_Touch/Death_Touch.webp
 ./Death_Touch/Infecting_Shot.webp
-./Death_Touch/Death_Touch-1.webp
+./Death_Touch/Death_Touch_print_ready.tif
+./Death_Touch/Death_Touch_print.pdf
 ...
 ```
+
+---
+
+## 🖨️ Print Output Format
+
+Each card is converted to:
+
+- 63 mm × 88 mm **trimmed card**
+- +3 mm **bleed** on each side → total **69 mm × 94 mm**
+- Exported as **816×1110 px @ 300 DPI**, **CMYK TIFF**
+
+### Print Zones
+
+| Zone              | Millimeters       | Pixels (@300 DPI)   | Description                      |
+|-------------------|-------------------|----------------------|----------------------------------|
+| Safe zone         | 57 × 82 mm        | 674 × 968 px         | Text and core elements           |
+| Trimmed size      | 63 × 88 mm        | 744 × 1039 px        | Final visible card size          |
+| Full bleed area   | **69 × 94 mm**    | **816 × 1110 px**    | Printed area before cutting ✅   |
+| Bleed per side    | 3 mm              | ~35 px               | Extra margin to avoid white edge |
+
+---
+
+## 🧼 Cleanup Options (interactive)
+
+After the PDF is created, the script will ask:
+
+```
+❓ What do you want to delete? [a/o/n]
+a → Delete ALL (TIFF + original webp/jpg)
+o → Delete only TIFFs
+n → Keep everything
+```
+
+This ensures you can keep the assets you want without accidentally deleting them.
 
 ---
 
@@ -63,7 +101,7 @@ A `Makefile` is provided to handle:
 ### ✅ Example usage:
 
 ```bash
-make run URL="https://fabrary.net/decks/..."
+make run "https://fabrary.net/decks/..."
 ```
 
 ---
@@ -78,15 +116,6 @@ fabrary-scraper/
 ├── README.md        # Project documentation
 └── .venv/           # Local Python environment (not tracked by Git)
 ```
-
----
-
-## ⚙️ How it works
-
-- All images are extracted from rendered HTML using BeautifulSoup
-- Downloads are handled by `requests`
-- Duplicate files are renamed with `-1`, `-2`, etc.
-- File and folder names are cleaned of unsafe characters
 
 ---
 
