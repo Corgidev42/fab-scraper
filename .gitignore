@@ -1,0 +1,18 @@
+# === Environnement Python ===
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# === Fichiers temporaires / système ===
+.DS_Store
+*.log
+
+# === Téléchargements / images scrapées ===
+*.zip
+*/  # si tu veux ignorer les dossiers de résultats dynamiques (ex: Arakni_Marionette/)
+
+# === VSCode ou PyCharm config ===
+.vscode/
+.idea/
