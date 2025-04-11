@@ -1,18 +1,21 @@
-# === Environnement Python ===
+# === Python ===
 .venv/
 __pycache__/
-*.pyc
+*.py[cod]
 *.pyo
-*.pyd
 
-# === Fichiers temporaires / système ===
+# === System ===
 .DS_Store
 *.log
 
-# === Téléchargements / images scrapées ===
-*.zip
-*/  # si tu veux ignorer les dossiers de résultats dynamiques (ex: Arakni_Marionette/)
+# === Scrap results ===
+# Ignore all dynamically created folders with images
+*/**/*.webp
+*/**/*.jpg
+*/**/*.jpeg
+*/**/*.png
 
-# === VSCode ou PyCharm config ===
-.vscode/
-.idea/
+# OR if you want to ignore the folders directly (regardless of format)
+Arakni_Marionette/
+Death_Touch/
+*/  # <- option radicale : ignore tout dossier généré par le scraper
