@@ -32,10 +32,10 @@ install: venv
 	@$(PIP) install $(REQUIREMENTS) > /dev/null
 	@echo "$(GREEN)✅ Environment ready!$(RESET)"
 
-# ▶️ Run the script with URL and optional BOOST
+# ▶️ Exécuter le script
 run: all
 	@if [ -z "$(URL)" ]; then \
-		echo "$(RED)❌ Missing URL. Usage: make run URL=https://your-url.com [BOOST=vivid|ultra-vivid]$(RESET)"; \
+		echo "$(RED)❌ Missing URL. Usage: make run URL=\"https://...\" BOOST=\"vivid|ultra-vivid\"$(RESET)"; \
 		exit 1; \
 	fi
 	@echo "$(BLUE)▶️ Running script with URL: $(URL) BOOST: $(BOOST)$(RESET)"
@@ -45,21 +45,27 @@ run: all
 		$(PYTHON) $(SCRIPT) "$(URL)" "$(BOOST)"; \
 	fi
 
-# 🧹 Clean environment
+# 🧹 Nettoyage du venv uniquement
 clean:
 	@rm -rf $(VENV_DIR)
-	@echo "$(RED)🧼 Environment removed: $(VENV_DIR)$(RESET)"
+	@echo "$(RED)🧼 Virtual environment removed: $(VENV_DIR)$(RESET)"
 
-# 🔁 Full reset
-re: clean all
+# 🧹 Nettoyage total (venv + tous les dossiers et fichiers générés)
+fclean: clean
+	@rm -rf $(wildcard *_*/ batch_cards/ output/ *.pdf)
+	@echo "$(RED)🧹 Fully cleaned generated folders and files$(RESET)"
 
-# 📖 Help
+# 🔁 Réinitialisation complète
+re: fclean all
+
+# 📖 Aide
 help:
 	@echo "$(MAGENTA)🛠 Available commands:$(RESET)\n"
 	@echo "$(CYAN)make all$(RESET)          - Create venv and install dependencies"
 	@echo "$(CYAN)make run URL=... [BOOST=vivid|ultra-vivid]$(RESET) - Run script with URL (and optional color boost)"
-	@echo "$(CYAN)make clean$(RESET)       - Remove virtual environment"
-	@echo "$(CYAN)make re$(RESET)          - Clean and reinstall"
+	@echo "$(CYAN)make clean$(RESET)       - Remove virtual environment only"
+	@echo "$(CYAN)make fclean$(RESET)      - Full clean (venv + generated files)"
+	@echo "$(CYAN)make re$(RESET)          - Full reset (fclean + install)"
 	@echo "$(CYAN)make help$(RESET)        - Show this help message"
 
-.PHONY: all venv install run clean re help
+.PHONY: all venv install run clean fclean re help

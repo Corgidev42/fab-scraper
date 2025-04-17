@@ -39,9 +39,14 @@ if len(sys.argv) >= 3:
 
 delay = 5  # secondes pour attendre le JS
 
-# === Setup de Selenium headless ===
+# === Setup Selenium (Headless propre) ===
 options = Options()
-options.headless = True
+options.add_argument("--headless=new")
+options.add_argument("--disable-gpu")
+options.add_argument("--window-size=1920,1080")
+options.add_argument("--no-sandbox")
+options.add_argument("--disable-dev-shm-usage")
+
 print("🚀 Lancement de Chrome...")
 driver = webdriver.Chrome(options=options)
 
@@ -91,6 +96,7 @@ for img in img_tags:
 		print(f"✅ Téléchargée : {filepath}")
 	except Exception as e:
 		print(f"❌ Erreur pour {img_url} : {e}")
+
 # === Traitement impression : CMJN + fond perdu + gabarit fixe ===
 def prepare_images_for_print(folder, boost_mode="none"):
 	from PIL import ImageEnhance
