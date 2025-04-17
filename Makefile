@@ -12,8 +12,12 @@ BOLD    = \033[1m
 VENV_DIR = .venv
 PYTHON = $(VENV_DIR)/bin/python
 PIP = $(VENV_DIR)/bin/pip
-REQUIREMENTS = selenium beautifulsoup4 requests
+REQUIREMENTS = selenium beautifulsoup4 requests Pillow
 SCRIPT = main.py
+
+# 📌 Arguments
+URL =
+BOOST =
 
 # 🧱 Initialisation
 all: venv install
@@ -28,14 +32,18 @@ install: venv
 	@$(PIP) install $(REQUIREMENTS) > /dev/null
 	@echo "$(GREEN)✅ Environment ready!$(RESET)"
 
-# ▶️ Run the script with URL as argument
-run:
-	@if [ -z "$(word 2, $(MAKECMDGOALS))" ]; then \
-		echo "$(RED)❌ Missing URL. Usage: make run https://your-url.com$(RESET)"; \
+# ▶️ Run the script with URL and optional BOOST
+run: all
+	@if [ -z "$(URL)" ]; then \
+		echo "$(RED)❌ Missing URL. Usage: make run URL=https://your-url.com [BOOST=vivid|ultra-vivid]$(RESET)"; \
 		exit 1; \
 	fi
-	@echo "$(BLUE)▶️ Running script with URL: $(word 2, $(MAKECMDGOALS))$(RESET)"
-	@$(PYTHON) $(SCRIPT) "$(word 2, $(MAKECMDGOALS))"
+	@echo "$(BLUE)▶️ Running script with URL: $(URL) BOOST: $(BOOST)$(RESET)"
+	@if [ -z "$(BOOST)" ]; then \
+		$(PYTHON) $(SCRIPT) "$(URL)"; \
+	else \
+		$(PYTHON) $(SCRIPT) "$(URL)" "$(BOOST)"; \
+	fi
 
 # 🧹 Clean environment
 clean:
@@ -45,8 +53,13 @@ clean:
 # 🔁 Full reset
 re: clean all
 
-.PHONY: all venv install run clean re
+# 📖 Help
+help:
+	@echo "$(MAGENTA)🛠 Available commands:$(RESET)\n"
+	@echo "$(CYAN)make all$(RESET)          - Create venv and install dependencies"
+	@echo "$(CYAN)make run URL=... [BOOST=vivid|ultra-vivid]$(RESET) - Run script with URL (and optional color boost)"
+	@echo "$(CYAN)make clean$(RESET)       - Remove virtual environment"
+	@echo "$(CYAN)make re$(RESET)          - Clean and reinstall"
+	@echo "$(CYAN)make help$(RESET)        - Show this help message"
 
-# ✅ Ignore URL as target so Make doesn't try to run it as a command
-%:
-	@:
+.PHONY: all venv install run clean re help

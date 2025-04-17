@@ -18,6 +18,7 @@ All images are stored in a folder named after the **first card detected** on the
 -   🔁 **Duplicate-friendly** (auto-renamed with suffixes)
 -   🖨️ **Print-ready export** (300 DPI, 69×94 mm with 3mm bleed, CMYK `.tif`)
 -   📄 **Deck PDF creation** (one page per card)
+-   🎨 **Color boost options** (vivid, ultra-vivid) for better print results
 -   🧼 **Interactive cleanup prompt** after generation
 -   📁 **Clean directory structure** based on the first card’s name
 -   🐍 **Automatic dependency installation** (if not already installed)
@@ -36,10 +37,14 @@ All images are stored in a folder named after the **first card detected** on the
 ## ▶️ Running the script (manual method)
 
 ```bash
-python main.py "https://fabrary.net/decks/..."
+python main.py "https://fabrary.net/decks/..." [vivid|ultra-vivid]
 ```
 
-> The script will automatically create a folder using the name of the first card found, download all images, generate print-ready `.tif` files, and compile a PDF.
+- If no boost option is given, the images are processed normally.
+- Adding vivid will enhance color saturation, contrast, and brightness moderately.
+- Adding ultra-vivid will apply a strong color boost for very vivid prints.
+
+The script will automatically create a folder using the name of the first card found, download all images, generate print-ready .tif files, and compile a PDF.
 
 ---
 
@@ -101,8 +106,13 @@ A `Makefile` is provided to handle:
 ### ✅ Example usage:
 
 ```bash
-make run "https://fabrary.net/decks/..."
+make run URL="https://fabrary.net/decks/..."
+make run URL="https://fabrary.net/decks/..." BOOST=vivid
+make run URL="https://fabrary.net/decks/..." BOOST=ultra-vivid
 ```
+
+If you want boosted colors for print, simply add BOOST=vivid or BOOST=ultra-vivid as a parameter.
+
 
 ---
 

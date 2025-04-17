@@ -15,7 +15,4 @@ __pycache__/
 */**/*.jpeg
 */**/*.png
 
-# OR if you want to ignore the folders directly (regardless of format)
-Arakni_Marionette/
-Death_Touch/
 */  # <- option radicale : ignore tout dossier généré par le scraper

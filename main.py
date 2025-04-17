@@ -21,10 +21,22 @@ from PIL import Image
 
 # === Vérification des arguments ===
 if len(sys.argv) < 2:
-	print("❌ Utilisation : python main.py <URL>")
+	print("❌ Utilisation : python main.py <URL> [vivid]")
 	sys.exit(1)
 
 url = sys.argv[1]
+
+# Option boost couleur
+boost_mode = "none"
+if len(sys.argv) >= 3:
+	mode = sys.argv[2].lower()
+	if mode == "vivid":
+		boost_mode = "vivid"
+		print("🎨 Mode VIVID activé : saturation, contraste et luminosité boostés.")
+	elif mode == "ultra-vivid":
+		boost_mode = "ultra-vivid"
+		print("🎨 Mode ULTRA-VIVID activé : saturation, contraste et luminosité poussés.")
+
 delay = 5  # secondes pour attendre le JS
 
 # === Setup de Selenium headless ===
@@ -63,12 +75,10 @@ for img in img_tags:
 	if not img_url:
 		continue
 
-	# Nettoyage du nom de fichier
 	base_filename = alt.replace(" ", "_").replace(",", "").replace("'", "").replace("/", "-")
 	extension = img_url.split('.')[-1].split('?')[0]
 	filepath = f"{folder_name}/{base_filename}.{extension}"
 
-	# Gestion des doublons
 	counter = 1
 	while os.path.exists(filepath):
 		filepath = f"{folder_name}/{base_filename}-{counter}.{extension}"
@@ -81,19 +91,17 @@ for img in img_tags:
 		print(f"✅ Téléchargée : {filepath}")
 	except Exception as e:
 		print(f"❌ Erreur pour {img_url} : {e}")
-
 # === Traitement impression : CMJN + fond perdu + gabarit fixe ===
-def prepare_images_for_print(folder):
-	from PIL import Image
+def prepare_images_for_print(folder, boost_mode="none"):
+	from PIL import ImageEnhance
 
-	# Gabarit final avec bleed inclus (816x1110 px à 300 DPI)
 	dpi = 300
 	width_mm, height_mm = 69, 94  # 63x88 + 3mm de chaque côté
 	final_width = int(width_mm / 25.4 * dpi)   # 816 px
 	final_height = int(height_mm / 25.4 * dpi) # 1110 px
-	content_width = int(63 / 25.4 * dpi)       # 744 px
-	content_height = int(88 / 25.4 * dpi)      # 1039 px
-	bleed = int(3 / 25.4 * dpi)                # 35 px
+	content_width = int(63 / 25.4 * dpi)        # 744 px
+	content_height = int(88 / 25.4 * dpi)       # 1039 px
+	bleed = int(3 / 25.4 * dpi)                 # 35 px
 
 	output_suffix = "_print_ready"
 	output_format = "TIFF"
@@ -107,17 +115,32 @@ def prepare_images_for_print(folder):
 			try:
 				img = Image.open(original_path).convert("RGB")
 
-				# Resize to content area: 744x1039 px
-				resized = img.resize((content_width, content_height), Image.LANCZOS)
+				# === Boost des couleurs si demandé ===
+				if boost_mode in ("vivid", "ultra-vivid"):
+					if boost_mode == "vivid":
+						saturation_factor = 1.2
+						contrast_factor = 1.1
+						brightness_factor = 1.05
+					elif boost_mode == "ultra-vivid":
+						saturation_factor = 1.4
+						contrast_factor = 1.2
+						brightness_factor = 1.1
 
-				# Create blank canvas with full bleed size: 816x1110 px
+					enhancer = ImageEnhance.Color(img)
+					img = enhancer.enhance(saturation_factor)
+					enhancer = ImageEnhance.Contrast(img)
+					img = enhancer.enhance(contrast_factor)
+					enhancer = ImageEnhance.Brightness(img)
+					img = enhancer.enhance(brightness_factor)
+
+				# === Resize et création fond perdu ===
+				resized = img.resize((content_width, content_height), Image.LANCZOS)
 				final_img = Image.new("RGB", (final_width, final_height), (255, 255, 255))
 				final_img.paste(resized, (bleed, bleed))
 
-				# Convert to CMYK
+				# === Conversion CMJN et sauvegarde ===
 				cmyk_img = final_img.convert("CMYK")
 
-				# Save
 				output_name = os.path.splitext(filename)[0] + output_suffix + ".tif"
 				output_path = os.path.join(folder, output_name)
 				cmyk_img.save(output_path, output_format, dpi=(dpi, dpi))
@@ -125,7 +148,7 @@ def prepare_images_for_print(folder):
 			except Exception as e:
 				print(f"❌ Error processing {filename}: {e}")
 
-prepare_images_for_print(folder_name)
+prepare_images_for_print(folder_name, boost_mode)
 
 # === Génération PDF final ===
 def export_images_to_pdf(folder):
@@ -179,7 +202,6 @@ def cleanup_prompt(folder):
 					except Exception as e:
 						print(f"❌ Erreur suppression {filename} : {e}")
 
-	# Résumé
 	if answer == 'a':
 		print(f"🗑️ {deleted_tif} TIFF + {deleted_scrap} image(s) originale(s) supprimée(s).")
 	elif answer == 'o':
@@ -187,5 +209,5 @@ def cleanup_prompt(folder):
 	else:
 		print("✅ Aucun fichier supprimé.")
 
-# Appel de la fonction à la fin du script
+# Appel final
 cleanup_prompt(folder_name)
