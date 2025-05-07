@@ -2,7 +2,7 @@ import subprocess
 import sys
 
 # === Auto-installation des modules requis ===
-required_modules = ['selenium', 'beautifulsoup4', 'requests', 'Pillow']
+required_modules = ['selenium', 'beautifulsoup4', 'requests', 'Pillow', 'python-docx']
 
 for module in required_modules:
 	try:
@@ -18,6 +18,7 @@ from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from PIL import Image
+from docx import Document
 
 # === Vérification des arguments ===
 if len(sys.argv) < 2:
@@ -33,13 +34,9 @@ if len(sys.argv) >= 3:
 	if mode == "vivid":
 		boost_mode = "vivid"
 		print("🎨 Mode VIVID activé : saturation, contraste et luminosité boostés.")
-	elif mode == "ultra-vivid":
-		boost_mode = "ultra-vivid"
-		print("🎨 Mode ULTRA-VIVID activé : saturation, contraste et luminosité poussés.")
-
-delay = 5  # secondes pour attendre le JS
 
 # === Setup Selenium (Headless propre) ===
+delay = 5  # secondes pour attendre le JS
 options = Options()
 options.add_argument("--headless=new")
 options.add_argument("--disable-gpu")
@@ -102,18 +99,18 @@ def prepare_images_for_print(folder, boost_mode="none"):
 	from PIL import ImageEnhance
 
 	dpi = 300
-	width_mm, height_mm = 69, 94  # 63x88 + 3mm de chaque côté
-	final_width = int(width_mm / 25.4 * dpi)   # 816 px
-	final_height = int(height_mm / 25.4 * dpi) # 1110 px
-	content_width = int(63 / 25.4 * dpi)        # 744 px
-	content_height = int(88 / 25.4 * dpi)       # 1039 px
-	bleed = int(3 / 25.4 * dpi)                 # 35 px
+	width_mm, height_mm = 69, 94
+	final_width = int(width_mm / 25.4 * dpi)
+	final_height = int(height_mm / 25.4 * dpi)
+	content_width = int(63 / 25.4 * dpi)
+	content_height = int(88 / 25.4 * dpi)
+	bleed = int(3 / 25.4 * dpi)
 
 	output_suffix = "_print_ready"
 	output_format = "TIFF"
 
 	print(f"\n🖨️  Preparing images for print...")
-	print(f"📐 Each image will be resized to: {final_width}x{final_height} px (69x94 mm @ 300 DPI)")
+	print(f"📐 Each image will be resized to: {final_width}x{final_height} px")
 
 	for filename in os.listdir(folder):
 		if filename.lower().endswith((".png", ".jpg", ".jpeg", ".webp")):
@@ -121,32 +118,19 @@ def prepare_images_for_print(folder, boost_mode="none"):
 			try:
 				img = Image.open(original_path).convert("RGB")
 
-				# === Boost des couleurs si demandé ===
-				if boost_mode in ("vivid", "ultra-vivid"):
-					if boost_mode == "vivid":
-						saturation_factor = 1.2
-						contrast_factor = 1.1
-						brightness_factor = 1.05
-					elif boost_mode == "ultra-vivid":
-						saturation_factor = 1.4
-						contrast_factor = 1.2
-						brightness_factor = 1.1
-
+				if boost_mode == "vivid":
 					enhancer = ImageEnhance.Color(img)
-					img = enhancer.enhance(saturation_factor)
+					img = enhancer.enhance(1.2)
 					enhancer = ImageEnhance.Contrast(img)
-					img = enhancer.enhance(contrast_factor)
+					img = enhancer.enhance(1.1)
 					enhancer = ImageEnhance.Brightness(img)
-					img = enhancer.enhance(brightness_factor)
+					img = enhancer.enhance(1.05)
 
-				# === Resize et création fond perdu ===
 				resized = img.resize((content_width, content_height), Image.LANCZOS)
 				final_img = Image.new("RGB", (final_width, final_height), (255, 255, 255))
 				final_img.paste(resized, (bleed, bleed))
 
-				# === Conversion CMJN et sauvegarde ===
 				cmyk_img = final_img.convert("CMYK")
-
 				output_name = os.path.splitext(filename)[0] + output_suffix + ".tif"
 				output_path = os.path.join(folder, output_name)
 				cmyk_img.save(output_path, output_format, dpi=(dpi, dpi))
@@ -177,43 +161,105 @@ def export_images_to_pdf(folder):
 
 export_images_to_pdf(folder_name)
 
+# === Génération DOCX liste des cartes ===
+def generate_deck_list_doc(folder):
+	from docx import Document
+	from collections import defaultdict
+
+	card_counts = defaultdict(int)
+
+	for filename in os.listdir(folder):
+		if filename.endswith("_print_ready.tif"):
+			base = filename.replace("_print_ready.tif", "")
+			if "_copy" in base:
+				base = base.rsplit("_copy", 1)[0]
+			if "-" in base and base.rsplit("-", 1)[-1].isdigit():
+				base = base.rsplit("-", 1)[0]
+			card_counts[base] += 1
+
+	sorted_cards = sorted(card_counts.items())
+
+	doc = Document()
+	doc.add_heading('Deck List', 0)
+	for name, qty in sorted_cards:
+		doc.add_paragraph(f"{name} x{qty}")
+
+	doc_path = os.path.join(folder, "deck_list.docx")
+	doc.save(doc_path)
+	print(f"✅ Document Word généré : {doc_path}")
+
+generate_deck_list_doc(folder_name)
+
 # === Demande de suppression des fichiers générés ===
 def cleanup_prompt(folder):
-	print("\n🧼 Cleanup options:")
-	print("a → Supprimer TOUT (images .tif + scrap .webp/.jpg/.png)")
-	print("o → Supprimer uniquement les images .tif")
-	print("n → Ne rien supprimer")
+	print("Select what you want to delete:")
+	print("  t - Print-ready TIFF files")
+	print("  i - Original images (webp/jpg/png)")
+	print("  p - PDF file")
+	print("  d - Word deck list (deck_list.docx)")
+	print("  a - All of the above")
+	print("  n - Keep everything")
 
-	answer = input("❓ Que souhaitez-vous supprimer ? [a/o/n] ").strip().lower()
+	answer = input("Your choice [t/i/p/d/a/n]: ").strip().lower()
+
+	delete_tiff = 't' in answer or answer == 'a'
+	delete_images = 'i' in answer or answer == 'a'
+	delete_pdf = 'p' in answer or answer == 'a'
+	delete_docx = 'd' in answer or answer == 'a'
 
 	deleted_tif = 0
 	deleted_scrap = 0
+	deleted_pdf = False
+	deleted_doc = False
 
-	if answer == 'a' or answer == 'o':
+	if delete_tiff:
 		for filename in os.listdir(folder):
 			if filename.endswith("_print_ready.tif"):
 				try:
 					os.remove(os.path.join(folder, filename))
 					deleted_tif += 1
 				except Exception as e:
-					print(f"❌ Erreur suppression TIFF {filename} : {e}")
+					print(f"Error deleting TIFF {filename}: {e}")
 
-	if answer == 'a':
+	if delete_images:
 		for filename in os.listdir(folder):
-			if filename.lower().endswith((".webp", ".jpg", ".jpeg", ".png")):
-				if not filename.endswith("_print_ready.tif"):
-					try:
-						os.remove(os.path.join(folder, filename))
-						deleted_scrap += 1
-					except Exception as e:
-						print(f"❌ Erreur suppression {filename} : {e}")
+			if filename.lower().endswith((".webp", ".jpg", ".jpeg", ".png")) and not filename.endswith("_print_ready.tif"):
+				try:
+					os.remove(os.path.join(folder, filename))
+					deleted_scrap += 1
+				except Exception as e:
+					print(f"Error deleting image {filename}: {e}")
 
-	if answer == 'a':
-		print(f"🗑️ {deleted_tif} TIFF + {deleted_scrap} image(s) originale(s) supprimée(s).")
-	elif answer == 'o':
-		print(f"🗑️ {deleted_tif} TIFF supprimé(s).")
+	if delete_pdf:
+		pdf_path = os.path.join(folder, f"{folder}_print.pdf")
+		if os.path.exists(pdf_path):
+			try:
+				os.remove(pdf_path)
+				deleted_pdf = True
+			except Exception as e:
+				print(f"Error deleting PDF: {e}")
+
+	if delete_docx:
+		doc_path = os.path.join(folder, "deck_list.docx")
+		if os.path.exists(doc_path):
+			try:
+				os.remove(doc_path)
+				deleted_doc = True
+			except Exception as e:
+				print(f"Error deleting Word file: {e}")
+
+	print()
+	if answer == 'n':
+		print("No files deleted.")
 	else:
-		print("✅ Aucun fichier supprimé.")
+		if delete_tiff:
+			print(f"Deleted {deleted_tif} TIFF file(s).")
+		if delete_images:
+			print(f"Deleted {deleted_scrap} original image(s).")
+		if delete_pdf and deleted_pdf:
+			print("Deleted PDF file.")
+		if delete_docx and deleted_doc:
+			print("Deleted Word file.")
 
 # Appel final
 cleanup_prompt(folder_name)
