@@ -12,12 +12,13 @@ BOLD    = \033[1m
 VENV_DIR = .venv
 PYTHON = $(VENV_DIR)/bin/python
 PIP = $(VENV_DIR)/bin/pip
-REQUIREMENTS = selenium beautifulsoup4 requests Pillow
+REQUIREMENTS = selenium beautifulsoup4 requests Pillow python-docx
 SCRIPT = main.py
 
 # 📌 Arguments
 URL =
 BOOST =
+DEDUP = false
 
 # 🧱 Initialisation
 all: venv install
@@ -35,15 +36,18 @@ install: venv
 # ▶️ Exécuter le script
 run: all
 	@if [ -z "$(URL)" ]; then \
-		echo "$(RED)❌ Missing URL. Usage: make run URL=\"https://...\" BOOST=\"vivid|ultra-vivid\"$(RESET)"; \
+		echo "$(RED)❌ Missing URL. Usage: make run URL=\"https://...\" BOOST=\"vivid\" DEDUP=true$(RESET)"; \
 		exit 1; \
 	fi
-	@echo "$(BLUE)▶️ Running script with URL: $(URL) BOOST: $(BOOST)$(RESET)"
-	@if [ -z "$(BOOST)" ]; then \
-		$(PYTHON) $(SCRIPT) "$(URL)"; \
-	else \
-		$(PYTHON) $(SCRIPT) "$(URL)" "$(BOOST)"; \
-	fi
+	@echo "$(BLUE)▶️ Running script with URL: $(URL), BOOST: $(BOOST), DEDUP: $(DEDUP)$(RESET)"
+	@CMD="$(PYTHON) $(SCRIPT) \"$(URL)\""; \
+	if [ -n "$(BOOST)" ]; then \
+		CMD="$$CMD \"$(BOOST)\""; \
+	fi; \
+	if [ "$(DEDUP)" = "true" ]; then \
+		CMD="$$CMD --dedup"; \
+	fi; \
+	eval $$CMD
 
 # 🧹 Nettoyage du venv uniquement
 clean:
@@ -52,7 +56,7 @@ clean:
 
 # 🧹 Nettoyage total (venv + tous les dossiers et fichiers générés)
 fclean: clean
-	@rm -rf $(wildcard *_*/ batch_cards/ output/ *.pdf)
+	@rm -rf $(wildcard *_*/ batch_cards/ output/ *.pdf *.docx)
 	@echo "$(RED)🧹 Fully cleaned generated folders and files$(RESET)"
 
 # 🔁 Réinitialisation complète
@@ -62,7 +66,7 @@ re: fclean all
 help:
 	@echo "$(MAGENTA)🛠 Available commands:$(RESET)\n"
 	@echo "$(CYAN)make all$(RESET)          - Create venv and install dependencies"
-	@echo "$(CYAN)make run URL=... [BOOST=vivid|ultra-vivid]$(RESET) - Run script with URL (and optional color boost)"
+	@echo "$(CYAN)make run URL=... [BOOST=vivid] [DEDUP=true]$(RESET) - Run script with URL (color boost optional, dedup mode optional)"
 	@echo "$(CYAN)make clean$(RESET)       - Remove virtual environment only"
 	@echo "$(CYAN)make fclean$(RESET)      - Full clean (venv + generated files)"
 	@echo "$(CYAN)make re$(RESET)          - Full reset (fclean + install)"

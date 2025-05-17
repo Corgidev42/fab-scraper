@@ -35,6 +35,12 @@ if len(sys.argv) >= 3:
 		boost_mode = "vivid"
 		print("🎨 Mode VIVID activé : saturation, contraste et luminosité boostés.")
 
+# === Options supplémentaires ===
+dedup_mode = False
+if '--dedup' in sys.argv:
+	dedup_mode = True
+	print("🧹 Mode DÉDOUBLONNAGE activé : seules les variantes visuelles uniques seront téléchargées.")
+
 # === Setup Selenium (Headless propre) ===
 delay = 5  # secondes pour attendre le JS
 options = Options()
@@ -69,6 +75,10 @@ folder_name = first_alt.replace(" ", "_").replace(",", "").replace("'", "").repl
 os.makedirs(folder_name, exist_ok=True)
 print(f"📂 Dossier de sortie : {folder_name}")
 
+from hashlib import md5
+
+seen_hashes = set()
+
 # === Téléchargement des images ===
 for img in img_tags:
 	img_url = img.get('src')
@@ -81,6 +91,7 @@ for img in img_tags:
 	extension = img_url.split('.')[-1].split('?')[0]
 	filepath = f"{folder_name}/{base_filename}.{extension}"
 
+	# Gestion doublons de noms
 	counter = 1
 	while os.path.exists(filepath):
 		filepath = f"{folder_name}/{base_filename}-{counter}.{extension}"
@@ -88,6 +99,14 @@ for img in img_tags:
 
 	try:
 		img_data = requests.get(img_url).content
+
+		if dedup_mode:
+			img_hash = md5(img_data).hexdigest()
+			if img_hash in seen_hashes:
+				print(f"⏩ Doublon détecté pour {alt}, image ignorée.")
+				continue
+			seen_hashes.add(img_hash)
+
 		with open(filepath, 'wb') as f:
 			f.write(img_data)
 		print(f"✅ Téléchargée : {filepath}")
